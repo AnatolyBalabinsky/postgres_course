@@ -1,0 +1,29 @@
+CREATE TABLE catalog.product_categories(
+id serial PRIMARY KEY,
+name TEXT NOT NULL);
+
+
+
+CREATE TABLE catalog.products(
+id serial PRIMARY KEY, 
+sku VARCHAR(30) UNIQUE,
+name TEXT NOT NULL,
+price serial NOT NULL,
+category_id INTEGER REFERENCES catalog.product_categories(id));
+
+
+
+CREATE TABLE catalog.warehouses(
+id serial PRIMARY KEY,
+city TEXT NOT NULL,
+address TEXT NOT NULL,
+label TEXT,
+is_central boolean
+);
+
+
+
+DROP TABLE catalog.products
+DROP TABLE catalog.product_categories
+DROP TABLE catalog.warehouses
+

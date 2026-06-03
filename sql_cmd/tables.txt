@@ -18,7 +18,7 @@ id serial PRIMARY KEY,
 city TEXT NOT NULL,
 address TEXT NOT NULL,
 label TEXT,
-is_central boolean
+is_central boolean NOT NULL
 );
 
 

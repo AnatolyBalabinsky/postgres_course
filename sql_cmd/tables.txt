@@ -5,6 +5,10 @@ create schema catalog;
 grant create on schema catalog to app_user;
 
 
+psql -h localhost -p 5432 -U app_user -d inventorydb
+\c inventorydb
+
+
 CREATE TABLE catalog.product_categories(
 id serial PRIMARY KEY,
 name TEXT NOT NULL);
@@ -32,4 +36,4 @@ SET search_path TO catalog, public;
 DROP TABLE catalog.products
 DROP TABLE catalog.product_categories
 DROP TABLE catalog.warehouses
-
+drop schema catalog;

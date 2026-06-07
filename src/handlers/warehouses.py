@@ -143,7 +143,10 @@ def add_warehouse() -> None:
         is_central = YesNoValidator.is_yes(answer)
         if is_central and _has_central():
             old_id = _get_central_id()
-            conn.execute("UPDATE catalog.warehouses SET is_central = FALSE WHERE id = %s", (old_id,))
+            conn.execute(
+                "UPDATE catalog.warehouses SET is_central = FALSE WHERE id = %s",
+                (old_id,),
+            )
 
     conn.execute(
         "INSERT INTO catalog.warehouses (city, address, label, is_central) VALUES (%s, %s, %s, %s)",
@@ -180,15 +183,21 @@ def edit_warehouse(_id: str) -> None:
     )
 
     if warehouse.is_central:
-        answer = prompt("Оставить центральным? (y/n): ", default="y", validator=YesNoValidator())
+        answer = prompt(
+            "Оставить центральным? (y/n): ", default="y", validator=YesNoValidator()
+        )
         is_central = YesNoValidator.is_yes(answer)
     else:
-        answer = prompt("Сделать центральным? (y/n): ", default="n", validator=YesNoValidator())
+        answer = prompt(
+            "Сделать центральным? (y/n): ", default="n", validator=YesNoValidator()
+        )
         is_central = YesNoValidator.is_yes(answer)
 
     if is_central and not warehouse.is_central and _has_central():
         old_id = _get_central_id()
-        conn.execute("UPDATE catalog.warehouses SET is_central = FALSE WHERE id = %s", (old_id,))
+        conn.execute(
+            "UPDATE catalog.warehouses SET is_central = FALSE WHERE id = %s", (old_id,)
+        )
 
     conn.execute(
         """UPDATE catalog.warehouses SET city = %s, address = %s, label = %s, is_central = %s
@@ -215,7 +224,9 @@ def delete_warehouse(_id: str) -> None:
     _render_warehouse(warehouse)
 
     if warehouse.is_central and _count_warehouses() > 1:
-        render_error("Нельзя удалить центральный склад. Сначала назначьте другой склад центральным.")
+        render_error(
+            "Нельзя удалить центральный склад. Сначала назначьте другой склад центральным."
+        )
         return
 
     answer = prompt("Вы уверены? (y/n, д/н): ", validator=YesNoValidator())

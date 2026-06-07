@@ -44,7 +44,9 @@ def list_product_categories() -> None:
     Выводит список всех категорий из таблицы catalog.product_categories.
     """
     conn = get_conn()
-    table = Table(title="Категории продуктов", show_header=True, header_style="bold cyan")
+    table = Table(
+        title="Категории продуктов", show_header=True, header_style="bold cyan"
+    )
 
     table.add_column("ID", style="dim", width=6, justify="right")
     table.add_column("Имя", style="green", min_width=30)
@@ -112,9 +114,7 @@ def edit_product_category(_id: str) -> None:
         render_error(f"Категория с ID {_id} не найдена")
         return
 
-    name = prompt(
-        "Имя: ", default=category.name, validator=NonEmptyValidator()
-    ).strip()
+    name = prompt("Имя: ", default=category.name, validator=NonEmptyValidator()).strip()
 
     conn.execute(
         """UPDATE catalog.product_categories SET name = %s

@@ -8,7 +8,12 @@ from prompt_toolkit import prompt
 from db import get_conn
 from console import console, render_error
 from commands import command, CATEGORY_PRODUCTS
-from validators import ChoiceValidator, NonEmptyValidator, YesNoValidator, PriceValidator
+from validators import (
+    ChoiceValidator,
+    NonEmptyValidator,
+    YesNoValidator,
+    PriceValidator,
+)
 
 
 @dataclass
@@ -23,14 +28,18 @@ class Product:
 def _category_exists(category_id: int) -> bool:
     conn = get_conn()
     with conn.cursor() as cur:
-        cur.execute("SELECT 1 FROM catalog.product_categories WHERE id = %s", (category_id,))
+        cur.execute(
+            "SELECT 1 FROM catalog.product_categories WHERE id = %s", (category_id,)
+        )
         return cur.fetchone() is not None
 
 
 def _get_category_name(category_id: int) -> str:
     conn = get_conn()
     with conn.cursor() as cur:
-        cur.execute("SELECT name FROM catalog.product_categories WHERE id = %s", (category_id,))
+        cur.execute(
+            "SELECT name FROM catalog.product_categories WHERE id = %s", (category_id,)
+        )
         row = cur.fetchone()
         return row[0] if row else "—"
 
@@ -129,7 +138,9 @@ def add_product() -> None:
     )
 
     category_name = _get_category_name(int(category_id))
-    console.print(f"[green]Продукт {name} (SKU: {sku}, категория: {category_name}) добавлен[/green]")
+    console.print(
+        f"[green]Продукт {name} (SKU: {sku}, категория: {category_name}) добавлен[/green]"
+    )
 
 
 @command("edit product", "редактировать товар", CATEGORY_PRODUCTS)
@@ -153,14 +164,14 @@ def edit_product(_id: str) -> None:
         default=product.sku,
         validator=NonEmptyValidator(),
     ).strip()
-    name = prompt(
-        "Имя: ", default=product.name, validator=NonEmptyValidator()
-    ).strip()
+    name = prompt("Имя: ", default=product.name, validator=NonEmptyValidator()).strip()
     price = prompt(
         "Цена: ", default=str(product.price), validator=PriceValidator()
     ).strip()
     category_id = prompt(
-        "ID категории: ", default=str(product.category_id), validator=NonEmptyValidator()
+        "ID категории: ",
+        default=str(product.category_id),
+        validator=NonEmptyValidator(),
     ).strip()
 
     if not _category_exists(int(category_id)):
@@ -173,7 +184,9 @@ def edit_product(_id: str) -> None:
         (sku, name, price, category_id, _id),
     )
     category_name = _get_category_name(int(category_id))
-    console.print(f"[green]Продукт {name} (SKU: {sku}, категория: {category_name}) обновлен[/green]")
+    console.print(
+        f"[green]Продукт {name} (SKU: {sku}, категория: {category_name}) обновлен[/green]"
+    )
 
 
 @command("delete product", "удалить товар", CATEGORY_PRODUCTS)
@@ -198,4 +211,6 @@ def delete_product(_id: str) -> None:
 
     if YesNoValidator.is_yes(answer):
         conn.execute("DELETE FROM catalog.products WHERE id = %s", (_id,))
-        console.print(f"[green]Продукт {product.name} (SKU: {product.sku}) удален[/green]")
+        console.print(
+            f"[green]Продукт {product.name} (SKU: {product.sku}) удален[/green]"
+        )

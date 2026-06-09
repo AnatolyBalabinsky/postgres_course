@@ -1,0 +1,3 @@
+docker compose up -d
+docker compose stop db
+psql -h localhost -p 5432 -U postgres

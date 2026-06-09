@@ -1,7 +1,17 @@
+create database inventorydb;
+create role app_user with login password 'user';
+GRANT CREATE ON DATABASE inventorydb TO app_user;
+create schema catalog;
+grant create on schema catalog to app_user;
+
+
+psql -h localhost -p 5432 -U app_user -d inventorydb
+\c inventorydb
+
+
 CREATE TABLE catalog.product_categories(
 id serial PRIMARY KEY,
 name TEXT NOT NULL);
-
 
 
 CREATE TABLE catalog.products(
@@ -10,7 +20,6 @@ sku VARCHAR(30) UNIQUE,
 name TEXT NOT NULL,
 price serial NOT NULL,
 category_id INTEGER REFERENCES catalog.product_categories(id));
-
 
 
 CREATE TABLE catalog.warehouses(
@@ -22,8 +31,9 @@ is_central boolean NOT NULL
 );
 
 
+SET search_path TO catalog, public;
 
 DROP TABLE catalog.products
 DROP TABLE catalog.product_categories
 DROP TABLE catalog.warehouses
-
+drop schema catalog;

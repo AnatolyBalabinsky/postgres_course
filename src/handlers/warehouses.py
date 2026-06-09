@@ -73,13 +73,6 @@ def _count_warehouses() -> int:
         return cur.fetchone()[0]
 
 
-def _has_central() -> bool:
-    conn = get_conn()
-    with conn.cursor() as cur:
-        cur.execute("SELECT COUNT(*) FROM catalog.warehouses WHERE is_central = TRUE")
-        return cur.fetchone()[0] > 0
-
-
 def _get_central_id() -> int | None:
     conn = get_conn()
     with conn.cursor() as cur:
@@ -141,7 +134,7 @@ def add_warehouse() -> None:
     else:
         answer = prompt("Сделать центральным? (y/n): ", validator=YesNoValidator())
         is_central = YesNoValidator.is_yes(answer)
-        if is_central and _has_central():
+        if is_central:
             old_id = _get_central_id()
             conn.execute(
                 "UPDATE catalog.warehouses SET is_central = FALSE WHERE id = %s",
@@ -193,7 +186,7 @@ def edit_warehouse(_id: str) -> None:
         )
         is_central = YesNoValidator.is_yes(answer)
 
-    if is_central and not warehouse.is_central and _has_central():
+    if is_central and not warehouse.is_central:
         old_id = _get_central_id()
         conn.execute(
             "UPDATE catalog.warehouses SET is_central = FALSE WHERE id = %s", (old_id,)

@@ -182,10 +182,7 @@ def edit_warehouse(_id: str) -> None:
     )
 
     if warehouse.is_central:
-        answer = prompt(
-            "Оставить центральным? (y/n): ", default="y", validator=YesNoValidator()
-        )
-        is_central = YesNoValidator.is_yes(answer)
+        is_central = True
     else:
         answer = prompt(
             "Сделать центральным? (y/n): ", default="n", validator=YesNoValidator()

@@ -73,12 +73,14 @@ def _count_warehouses() -> int:
         return cur.fetchone()[0]
 
 
-def _get_central_id() -> int | None:
+def _get_central_id() -> int:
     conn = get_conn()
     with conn.cursor() as cur:
         cur.execute("SELECT id FROM catalog.warehouses WHERE is_central = TRUE")
         row = cur.fetchone()
-        return row[0] if row else None
+        if row:
+            return row[0]
+        raise ValueError("Не удалось получить ID центрального склада")
 
 
 @command("list warehouses", "список всех складов", CATEGORY_WAREHOUSES)
@@ -135,7 +137,11 @@ def add_warehouse() -> None:
         answer = prompt("Сделать центральным? (y/n): ", validator=YesNoValidator())
         is_central = YesNoValidator.is_yes(answer)
         if is_central:
-            old_id = _get_central_id()
+            try:
+                old_id = _get_central_id()
+            except ValueError as e:
+                render_error(str(e))
+                return
             conn.execute(
                 "UPDATE catalog.warehouses SET is_central = FALSE WHERE id = %s",
                 (old_id,),
@@ -187,7 +193,11 @@ def edit_warehouse(_id: str) -> None:
         is_central = YesNoValidator.is_yes(answer)
 
     if is_central and not warehouse.is_central:
-        old_id = _get_central_id()
+        try:
+            old_id = _get_central_id()
+        except ValueError as e:
+            render_error(str(e))
+            return
         conn.execute(
             "UPDATE catalog.warehouses SET is_central = FALSE WHERE id = %s", (old_id,)
         )

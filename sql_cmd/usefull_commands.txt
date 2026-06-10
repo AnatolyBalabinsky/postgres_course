@@ -42,6 +42,8 @@ drop schema catalog;
 pg_dump -h localhost -p 5432 -t 'catalog.*' -U app_user --schema-only inventorydb
 
 
+alembic revision -m "название миграции"
+
 alembic upgrade head
 alembic downgrade -1
 alembic history

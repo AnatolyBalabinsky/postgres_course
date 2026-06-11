@@ -1,0 +1,49 @@
+create database inventorydb;
+create role app_user with login password 'user';
+GRANT CREATE ON DATABASE inventorydb TO app_user;
+create schema catalog;
+grant create on schema catalog to app_user;
+GRANT CREATE ON SCHEMA public TO app_user;
+
+psql -h localhost -p 5432 -U app_user -d inventorydb
+\c inventorydb
+
+
+CREATE TABLE catalog.product_categories (
+    id serial PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE catalog.products (
+    id serial PRIMARY KEY,
+    sku VARCHAR(30) UNIQUE,
+    name TEXT NOT NULL,
+    price DECIMAL(10, 2) NOT NULL,
+    category TEXT REFERENCES catalog.product_categories(name) ON DELETE NO ACTION ON UPDATE CASCADE
+);
+
+CREATE TABLE catalog.warehouses (
+    id serial PRIMARY KEY,
+    city TEXT NOT NULL,
+    address TEXT NOT NULL,
+    label TEXT,
+    is_central boolean NOT NULL
+);
+
+
+SET search_path TO catalog, public;
+
+DROP TABLE catalog.products
+DROP TABLE catalog.product_categories
+DROP TABLE catalog.warehouses
+drop schema catalog;
+
+
+pg_dump -h localhost -p 5432 -t 'catalog.*' -U app_user --schema-only inventorydb
+
+
+alembic revision -m "название миграции"
+
+alembic upgrade head
+alembic downgrade -1
+alembic history

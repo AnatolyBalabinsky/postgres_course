@@ -62,7 +62,9 @@ def _get_product_name(product_id: int) -> str:
     with conn.cursor() as cur:
         cur.execute("SELECT name FROM catalog.products WHERE id = %s", (product_id,))
         result = cur.fetchone()
-        return result[0] if result else "Неизвестный продукт"
+        if result is None:
+            raise ValueError(f"Продукт с ID {product_id} не найден в базе")
+        return result[0]
 
 
 def _get_products_completer():
@@ -112,7 +114,11 @@ def _render_order(order: Order, items: list[OrderItem]) -> None:
         items_table.add_column("Сумма", style="bold white", min_width=12)
 
         for item in items:
-            product_name = _get_product_name(item.product_id)
+            try:
+                product_name = _get_product_name(item.product_id)
+            except ValueError as e:
+                render_error(str(e))
+                return
             items_table.add_row(
                 str(item.id),
                 product_name,
@@ -200,6 +206,10 @@ def add_order() -> None:
     _recalc_total(str(order_id))
 
     order = _get_order(str(order_id))
+    if order is None:
+        render_error(f"Созданный заказ #{order_id} не найден")
+        return
+
     items = _get_order_items(str(order_id))
     _render_order(order, items)
 
@@ -256,8 +266,13 @@ def edit_order(_id: str) -> None:
 
     warehouse_choices = {f"{w[0]} - {w[1]}": w[0] for w in warehouses}
     current_warehouse_str = next(
-        key for key, val in warehouse_choices.items() if val == order.warehouse_id
+        (key for key, val in warehouse_choices.items() if val == order.warehouse_id),
+        None
     )
+    if current_warehouse_str is None:
+        render_error(f"Склад с ID {order.warehouse_id} не найден")
+        return
+
     warehouse_validator = ChoiceValidator(
         list(warehouse_choices.keys()),
         message="Выберите склад из списка. Используйте Tab для автодополнения.",
@@ -339,6 +354,11 @@ def add_order_item(order_id: str) -> None:
     _add_order_items_loop(int(order_id))
     _recalc_total(order_id)
 
+    order = _get_order(order_id)
+    if order is None:
+        render_error(f"Заказ с ID {order_id} не найден после обновления")
+        return
+
     items = _get_order_items(order_id)
     _render_order(order, items)
 
@@ -361,7 +381,11 @@ def edit_order_item(order_id: str) -> None:
 
     item_choices = {}
     for item in items:
-        product_name = _get_product_name(item.product_id)
+        try:
+            product_name = _get_product_name(item.product_id)
+        except ValueError as e:
+            render_error(str(e))
+            return
         item_choices[f"{item.id}: {product_name} x{item.quantity}"] = item.id
 
     item_validator = ChoiceValidator(
@@ -393,6 +417,10 @@ def edit_order_item(order_id: str) -> None:
     _recalc_total(order_id)
 
     order = _get_order(order_id)
+    if order is None:
+        render_error(f"Заказ с ID {order_id} не найден после обновления")
+        return
+
     items = _get_order_items(order_id)
     console.print("[green]Товар обновлен[/green]")
     _render_order(order, items)
@@ -416,7 +444,11 @@ def delete_order_item(order_id: str) -> None:
 
     item_choices = {}
     for item in items:
-        product_name = _get_product_name(item.product_id)
+        try:
+            product_name = _get_product_name(item.product_id)
+        except ValueError as e:
+            render_error(str(e))
+            return
         item_choices[f"{item.id}: {product_name} x{item.quantity}"] = item.id
 
     item_validator = ChoiceValidator(
@@ -440,6 +472,10 @@ def delete_order_item(order_id: str) -> None:
         _recalc_total(order_id)
 
         order = _get_order(order_id)
+        if order is None:
+            render_error(f"Заказ с ID {order_id} не найден после удаления товара")
+            return
+
         items = _get_order_items(order_id)
         console.print("[green]Товар удален[/green]")
         _render_order(order, items)

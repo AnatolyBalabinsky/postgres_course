@@ -26,7 +26,6 @@ class OrderItem:
     product_id: int
     quantity: int
     price: Decimal
-    name: str
 
 
 @dataclass
@@ -52,14 +51,18 @@ def _get_order_items(order_id: str) -> list[OrderItem]:
     conn = get_conn()
     with conn.cursor(row_factory=class_row(OrderItem)) as cur:
         cur.execute(
-            """SELECT oi.*, p.name
-            FROM sales.order_items oi
-            JOIN catalog.products p ON oi.product_id = p.id
-            WHERE oi.order_id = %s
-            ORDER BY oi.id""",
+            "SELECT * FROM sales.order_items WHERE order_id = %s ORDER BY id",
             (order_id,),
         )
         return cur.fetchall()
+
+
+def _get_product_name(product_id: int) -> str:
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute("SELECT name FROM catalog.products WHERE id = %s", (product_id,))
+        result = cur.fetchone()
+        return result[0] if result else "Неизвестный продукт"
 
 
 def _get_products_completer():
@@ -71,15 +74,14 @@ def _get_products_completer():
 
 def _recalc_total(order_id: str) -> None:
     conn = get_conn()
-    with conn.transaction():
-        conn.execute(
-            """UPDATE sales.orders SET total_amount = (
-                SELECT COALESCE(SUM(price * quantity), 0)
-                FROM sales.order_items
-                WHERE order_id = %s
-            ) WHERE id = %s""",
-            (order_id, order_id),
-        )
+    conn.execute(
+        """UPDATE sales.orders SET total_amount = (
+            SELECT COALESCE(SUM(price * quantity), 0)
+            FROM sales.order_items
+            WHERE order_id = %s
+        ) WHERE id = %s""",
+        (order_id, order_id),
+    )
 
 
 def _render_order(order: Order, items: list[OrderItem]) -> None:
@@ -110,9 +112,10 @@ def _render_order(order: Order, items: list[OrderItem]) -> None:
         items_table.add_column("Сумма", style="bold white", min_width=12)
 
         for item in items:
+            product_name = _get_product_name(item.product_id)
             items_table.add_row(
                 str(item.id),
-                item.name,
+                product_name,
                 str(item.price),
                 str(item.quantity),
                 str(item.price * item.quantity),
@@ -183,14 +186,13 @@ def add_order() -> None:
     ).strip()
     warehouse_id = warehouse_choices[warehouse_str]
 
-    with conn.transaction():
-        conn.execute(
-            "INSERT INTO sales.orders (warehouse_id) VALUES (%s)",
-            (warehouse_id,),
-        )
-        with conn.cursor() as cur:
-            cur.execute("SELECT currval('sales.orders_id_seq')")
-            order_id = cur.fetchone()[0]
+    conn.execute(
+        "INSERT INTO sales.orders (warehouse_id) VALUES (%s)",
+        (warehouse_id,),
+    )
+    with conn.cursor() as cur:
+        cur.execute("SELECT currval('sales.orders_id_seq')")
+        order_id = cur.fetchone()[0]
 
     console.print(f"[green]Заказ #{order_id} создан[/green]")
 
@@ -229,15 +231,10 @@ def _add_order_items_loop(order_id: int) -> None:
 
         quantity = prompt("Количество: ", validator=QuantityValidator()).strip()
 
-        with conn.transaction():
-            cur = conn.execute(
-                """INSERT INTO sales.order_items (order_id, product_id, quantity, price)
-                VALUES (%s, %s, %s, %s)
-                ON CONFLICT (order_id, product_id) DO UPDATE
-                SET quantity = sales.order_items.quantity + EXCLUDED.quantity,
-                    price = EXCLUDED.price""",
-                (order_id, product_id, int(quantity), price),
-            )
+        conn.execute(
+            "INSERT INTO sales.order_items (order_id, product_id, quantity, price) VALUES (%s, %s, %s, %s)",
+            (order_id, product_id, quantity, price),
+        )
         console.print("[green]Товар добавлен[/green]")
 
 
@@ -362,7 +359,11 @@ def edit_order_item(order_id: str) -> None:
         render_error("В заказе нет товаров")
         return
 
-    item_choices = {f"{i.id}: {i.name} x{i.quantity}": i.id for i in items}
+    item_choices = {}
+    for item in items:
+        product_name = _get_product_name(item.product_id)
+        item_choices[f"{item.id}: {product_name} x{item.quantity}"] = item.id
+
     item_validator = ChoiceValidator(
         list(item_choices.keys()),
         message="Выберите товар из списка. Используйте Tab для автодополнения.",
@@ -387,7 +388,7 @@ def edit_order_item(order_id: str) -> None:
     conn = get_conn()
     conn.execute(
         "UPDATE sales.order_items SET quantity = %s WHERE id = %s",
-        (int(quantity), item_id),
+        (quantity, item_id),
     )
     _recalc_total(order_id)
 
@@ -413,7 +414,11 @@ def delete_order_item(order_id: str) -> None:
         render_error("В заказе нет товаров")
         return
 
-    item_choices = {f"{i.id}: {i.name} x{i.quantity}": i.id for i in items}
+    item_choices = {}
+    for item in items:
+        product_name = _get_product_name(item.product_id)
+        item_choices[f"{item.id}: {product_name} x{item.quantity}"] = item.id
+
     item_validator = ChoiceValidator(
         list(item_choices.keys()),
         message="Выберите товар из списка. Используйте Tab для автодополнения.",

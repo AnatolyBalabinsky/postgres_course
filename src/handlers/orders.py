@@ -71,7 +71,9 @@ def _get_products_completer():
     conn = get_conn()
     with conn.cursor() as cur:
         cur.execute("SELECT name FROM catalog.products")
-        return WordCompleter([row[0] for row in cur.fetchall()], ignore_case=True, sentence=True)
+        return WordCompleter(
+            [row[0] for row in cur.fetchall()], ignore_case=True, sentence=True
+        )
 
 
 def _recalc_total(order_id: str) -> None:
@@ -111,7 +113,9 @@ def _render_order(order: Order, items: list[OrderItem]) -> None:
     console.print(panel)
 
     if items:
-        items_table = Table(title="Товары в заказе", show_header=True, header_style="bold cyan")
+        items_table = Table(
+            title="Товары в заказе", show_header=True, header_style="bold cyan"
+        )
         items_table.add_column("ID", style="dim", width=6, justify="right")
         items_table.add_column("Название", style="yellow", min_width=30)
         items_table.add_column("Цена", style="magenta", min_width=12)
@@ -188,7 +192,9 @@ def add_order() -> None:
         list(warehouse_choices.keys()),
         message="Выберите склад из списка. Используйте Tab для автодополнения.",
     )
-    warehouse_completer = WordCompleter(list(warehouse_choices.keys()), ignore_case=True, sentence=True)
+    warehouse_completer = WordCompleter(
+        list(warehouse_choices.keys()), ignore_case=True, sentence=True
+    )
 
     warehouse_str = prompt(
         "Склад: ",
@@ -235,7 +241,10 @@ def _add_order_items_loop(order_id: int) -> None:
         ).strip()
 
         with conn.cursor() as cur:
-            cur.execute("SELECT id, price FROM catalog.products WHERE name = %s", (product_name,))
+            cur.execute(
+                "SELECT id, price FROM catalog.products WHERE name = %s",
+                (product_name,),
+            )
             product = cur.fetchone()
 
         if product is None:
@@ -273,7 +282,7 @@ def edit_order(_id: str) -> None:
     warehouse_choices = {f"{w[0]} - {w[1]}": w[0] for w in warehouses}
     current_warehouse_str = next(
         (key for key, val in warehouse_choices.items() if val == order.warehouse_id),
-        None
+        None,
     )
     if current_warehouse_str is None:
         render_error(f"Склад с ID {order.warehouse_id} не найден")
@@ -283,7 +292,9 @@ def edit_order(_id: str) -> None:
         list(warehouse_choices.keys()),
         message="Выберите склад из списка. Используйте Tab для автодополнения.",
     )
-    warehouse_completer = WordCompleter(list(warehouse_choices.keys()), ignore_case=True, sentence=True)
+    warehouse_completer = WordCompleter(
+        list(warehouse_choices.keys()), ignore_case=True, sentence=True
+    )
 
     warehouse_str = prompt(
         "Склад: ",
@@ -401,7 +412,9 @@ def edit_order_item(order_id: str) -> None:
         list(item_choices.keys()),
         message="Выберите товар из списка. Используйте Tab для автодополнения.",
     )
-    item_completer = WordCompleter(list(item_choices.keys()), ignore_case=True, sentence=True)
+    item_completer = WordCompleter(
+        list(item_choices.keys()), ignore_case=True, sentence=True
+    )
 
     choice = prompt(
         "Выберите товар для редактирования: ",
@@ -465,7 +478,9 @@ def delete_order_item(order_id: str) -> None:
         list(item_choices.keys()),
         message="Выберите товар из списка. Используйте Tab для автодополнения.",
     )
-    item_completer = WordCompleter(list(item_choices.keys()), ignore_case=True, sentence=True)
+    item_completer = WordCompleter(
+        list(item_choices.keys()), ignore_case=True, sentence=True
+    )
 
     choice = prompt(
         "Выберите товар для удаления: ",

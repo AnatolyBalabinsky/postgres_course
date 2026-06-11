@@ -51,7 +51,7 @@ def _get_order_items(order_id: str) -> list[OrderItem]:
     conn = get_conn()
     with conn.cursor(row_factory=class_row(OrderItem)) as cur:
         cur.execute(
-            "SELECT * FROM sales.order_items WHERE order_id = %s ORDER BY id",
+            "SELECT * FROM sales.order_items WHERE order_id = %s",
             (order_id,),
         )
         return cur.fetchall()
@@ -70,20 +70,25 @@ def _get_product_name(product_id: int) -> str:
 def _get_products_completer():
     conn = get_conn()
     with conn.cursor() as cur:
-        cur.execute("SELECT name FROM catalog.products ORDER BY name")
+        cur.execute("SELECT name FROM catalog.products")
         return WordCompleter([row[0] for row in cur.fetchall()], ignore_case=True, sentence=True)
 
 
 def _recalc_total(order_id: str) -> None:
     conn = get_conn()
-    conn.execute(
-        """UPDATE sales.orders SET total_amount = (
-            SELECT COALESCE(SUM(price * quantity), 0)
-            FROM sales.order_items
-            WHERE order_id = %s
-        ) WHERE id = %s""",
-        (order_id, order_id),
-    )
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT SUM(price * quantity) FROM sales.order_items WHERE order_id = %s",
+            (order_id,),
+        )
+        result = cur.fetchone()
+        total = result[0] if result[0] is not None else 0
+
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE sales.orders SET total_amount = %s WHERE id = %s",
+            (total, order_id),
+        )
 
 
 def _render_order(order: Order, items: list[OrderItem]) -> None:
@@ -141,7 +146,7 @@ def list_orders() -> None:
     table.add_column("Склад", style="green", min_width=12)
 
     with conn.cursor(row_factory=class_row(Order)) as cur:
-        cur.execute("SELECT * FROM sales.orders ORDER BY id")
+        cur.execute("SELECT * FROM sales.orders")
         orders: list[Order] = cur.fetchall()
 
     for order in orders:
@@ -171,7 +176,7 @@ def add_order() -> None:
     conn = get_conn()
 
     with conn.cursor() as cur:
-        cur.execute("SELECT id, city FROM catalog.warehouses ORDER BY id")
+        cur.execute("SELECT id, city FROM catalog.warehouses")
         warehouses = cur.fetchall()
 
     if not warehouses:
@@ -192,12 +197,12 @@ def add_order() -> None:
     ).strip()
     warehouse_id = warehouse_choices[warehouse_str]
 
-    conn.execute(
-        "INSERT INTO sales.orders (warehouse_id) VALUES (%s)",
-        (warehouse_id,),
-    )
     with conn.cursor() as cur:
-        cur.execute("SELECT currval('sales.orders_id_seq')")
+        cur.execute(
+            "INSERT INTO sales.orders (warehouse_id) VALUES (%s)",
+            (warehouse_id,),
+        )
+        cur.execute("SELECT MAX(id) FROM sales.orders")
         order_id = cur.fetchone()[0]
 
     console.print(f"[green]Заказ #{order_id} создан[/green]")
@@ -241,10 +246,11 @@ def _add_order_items_loop(order_id: int) -> None:
 
         quantity = prompt("Количество: ", validator=QuantityValidator()).strip()
 
-        conn.execute(
-            "INSERT INTO sales.order_items (order_id, product_id, quantity, price) VALUES (%s, %s, %s, %s)",
-            (order_id, product_id, quantity, price),
-        )
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO sales.order_items (order_id, product_id, quantity, price) VALUES (%s, %s, %s, %s)",
+                (order_id, product_id, quantity, price),
+            )
         console.print("[green]Товар добавлен[/green]")
 
 
@@ -261,7 +267,7 @@ def edit_order(_id: str) -> None:
 
     conn = get_conn()
     with conn.cursor() as cur:
-        cur.execute("SELECT id, city FROM catalog.warehouses ORDER BY id")
+        cur.execute("SELECT id, city FROM catalog.warehouses")
         warehouses = cur.fetchall()
 
     warehouse_choices = {f"{w[0]} - {w[1]}": w[0] for w in warehouses}
@@ -287,10 +293,11 @@ def edit_order(_id: str) -> None:
     ).strip()
     warehouse_id = warehouse_choices[warehouse_str]
 
-    conn.execute(
-        "UPDATE sales.orders SET warehouse_id = %s WHERE id = %s",
-        (warehouse_id, _id),
-    )
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE sales.orders SET warehouse_id = %s WHERE id = %s",
+            (warehouse_id, _id),
+        )
     console.print(f"[green]Заказ #{_id} обновлен[/green]")
 
 
@@ -312,7 +319,8 @@ def delete_order(_id: str) -> None:
 
     if YesNoValidator.is_yes(answer):
         conn = get_conn()
-        conn.execute("DELETE FROM sales.orders WHERE id = %s", (_id,))
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM sales.orders WHERE id = %s", (_id,))
         console.print(f"[green]Заказ #{_id} удален[/green]")
 
 
@@ -333,10 +341,11 @@ def publish_order(_id: str) -> None:
         return
 
     conn = get_conn()
-    conn.execute(
-        "UPDATE sales.orders SET status = 'new' WHERE id = %s",
-        (_id,),
-    )
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE sales.orders SET status = 'new' WHERE id = %s",
+            (_id,),
+        )
     console.print(f"[green]Заказ #{_id} опубликован (статус: new)[/green]")
 
 
@@ -410,10 +419,11 @@ def edit_order_item(order_id: str) -> None:
     ).strip()
 
     conn = get_conn()
-    conn.execute(
-        "UPDATE sales.order_items SET quantity = %s WHERE id = %s",
-        (quantity, item_id),
-    )
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE sales.order_items SET quantity = %s WHERE id = %s",
+            (quantity, item_id),
+        )
     _recalc_total(order_id)
 
     order = _get_order(order_id)
@@ -468,7 +478,8 @@ def delete_order_item(order_id: str) -> None:
 
     if YesNoValidator.is_yes(answer):
         conn = get_conn()
-        conn.execute("DELETE FROM sales.order_items WHERE id = %s", (item_id,))
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM sales.order_items WHERE id = %s", (item_id,))
         _recalc_total(order_id)
 
         order = _get_order(order_id)

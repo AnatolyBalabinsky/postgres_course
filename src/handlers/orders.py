@@ -66,10 +66,20 @@ def _get_product_name(product_id: int) -> str:
         return result[0]
 
 
-def _get_products_completer():
+def _get_products_completer(order_id: int = None):
     conn = get_conn()
     with conn.cursor() as cur:
-        cur.execute("SELECT name FROM catalog.products")
+        if order_id is not None:
+            cur.execute("""
+                SELECT name FROM catalog.products 
+                WHERE id NOT IN (
+                    SELECT product_id FROM sales.order_items 
+                    WHERE order_id = %s
+                )
+            """, (order_id,))
+        else:
+            cur.execute("SELECT name FROM catalog.products")
+
         return WordCompleter(
             [row[0] for row in cur.fetchall()], ignore_case=True, sentence=True
         )
@@ -226,7 +236,7 @@ def add_order() -> None:
 
 def _add_order_items_loop(order_id: int) -> None:
     conn = get_conn()
-    products_completer = _get_products_completer()
+    products_completer = _get_products_completer(order_id)
 
     while True:
         answer = prompt("Добавить товар в заказ? (y/n): ", validator=YesNoValidator())
@@ -260,6 +270,8 @@ def _add_order_items_loop(order_id: int) -> None:
                 (order_id, product_id, quantity, price),
             )
         console.print("[green]Товар добавлен[/green]")
+
+        products_completer = _get_products_completer(order_id)
 
 
 @command("edit order", "редактировать заказ", CATEGORY_ORDERS)

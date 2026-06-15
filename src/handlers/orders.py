@@ -71,13 +71,16 @@ def _get_products_completer(order_id: int = None):
     conn = get_conn()
     with conn.cursor() as cur:
         if order_id is not None:
-            cur.execute("""
+            cur.execute(
+                """
                 SELECT name FROM catalog.products 
                 WHERE id NOT IN (
                     SELECT product_id FROM sales.order_items 
                     WHERE order_id = %s
                 )
-            """, (order_id,))
+            """,
+                (order_id,),
+            )
         else:
             cur.execute("SELECT name FROM catalog.products")
 
@@ -294,7 +297,9 @@ def edit_order(_id: str) -> None:
     warehouse_id_str = choice(
         message="Выберите склад:",
         options=warehouse_options,
-        default=warehouse_options[default_index][0] if default_index is not None else None,
+        default=(
+            warehouse_options[default_index][0] if default_index is not None else None
+        ),
     )
     warehouse_id = int(warehouse_id_str)
 
@@ -400,7 +405,12 @@ def edit_order_item(order_id: str) -> None:
         except ValueError as e:
             render_error(str(e))
             return
-        item_options.append((str(item.product_id), f"{item.product_id}: {product_name} x{item.quantity}"))
+        item_options.append(
+            (
+                str(item.product_id),
+                f"{item.product_id}: {product_name} x{item.quantity}",
+            )
+        )
 
     product_id_str = choice(
         message="Выберите товар для редактирования:",
@@ -457,7 +467,12 @@ def delete_order_item(order_id: str) -> None:
         except ValueError as e:
             render_error(str(e))
             return
-        item_options.append((str(item.product_id), f"{item.product_id}: {product_name} x{item.quantity}"))
+        item_options.append(
+            (
+                str(item.product_id),
+                f"{item.product_id}: {product_name} x{item.quantity}",
+            )
+        )
 
     product_id_str = choice(
         message="Выберите товар для удаления:",

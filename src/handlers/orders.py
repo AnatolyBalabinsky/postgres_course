@@ -21,7 +21,6 @@ from commands import command, CATEGORY_ORDERS
 
 @dataclass
 class OrderItem:
-    id: int
     order_id: int
     product_id: int
     quantity: int
@@ -51,7 +50,7 @@ def _get_order_items(order_id: str) -> list[OrderItem]:
     conn = get_conn()
     with conn.cursor(row_factory=class_row(OrderItem)) as cur:
         cur.execute(
-            "SELECT * FROM sales.order_items WHERE order_id = %s",
+            "SELECT order_id, product_id, quantity, price FROM sales.order_items WHERE order_id = %s",
             (order_id,),
         )
         return cur.fetchall()
@@ -129,7 +128,7 @@ def _render_order(order: Order, items: list[OrderItem]) -> None:
                 render_error(str(e))
                 return
             items_table.add_row(
-                str(item.id),
+                str(item.product_id),
                 product_name,
                 str(item.price),
                 str(item.quantity),
@@ -406,7 +405,7 @@ def edit_order_item(order_id: str) -> None:
         except ValueError as e:
             render_error(str(e))
             return
-        item_choices[f"{item.id}: {product_name} x{item.quantity}"] = item.id
+        item_choices[f"{item.product_id}: {product_name} x{item.quantity}"] = item.product_id
 
     item_validator = ChoiceValidator(
         list(item_choices.keys()),
@@ -421,9 +420,9 @@ def edit_order_item(order_id: str) -> None:
         validator=item_validator,
         completer=item_completer,
     ).strip()
-    item_id = item_choices[choice]
+    product_id = item_choices[choice]
 
-    selected_item = next(i for i in items if i.id == item_id)
+    selected_item = next(i for i in items if i.product_id == product_id)
 
     quantity = prompt(
         "Количество: ",
@@ -434,8 +433,8 @@ def edit_order_item(order_id: str) -> None:
     conn = get_conn()
     with conn.cursor() as cur:
         cur.execute(
-            "UPDATE sales.order_items SET quantity = %s WHERE id = %s",
-            (quantity, item_id),
+            "UPDATE sales.order_items SET quantity = %s WHERE order_id = %s AND product_id = %s",
+            (quantity, order_id, product_id),
         )
     _recalc_total(order_id)
 
@@ -472,7 +471,7 @@ def delete_order_item(order_id: str) -> None:
         except ValueError as e:
             render_error(str(e))
             return
-        item_choices[f"{item.id}: {product_name} x{item.quantity}"] = item.id
+        item_choices[f"{item.product_id}: {product_name} x{item.quantity}"] = item.product_id
 
     item_validator = ChoiceValidator(
         list(item_choices.keys()),
@@ -487,14 +486,17 @@ def delete_order_item(order_id: str) -> None:
         validator=item_validator,
         completer=item_completer,
     ).strip()
-    item_id = item_choices[choice]
+    product_id = item_choices[choice]
 
     answer = prompt("Вы уверены? (y/n, д/н): ", validator=YesNoValidator())
 
     if YesNoValidator.is_yes(answer):
         conn = get_conn()
         with conn.cursor() as cur:
-            cur.execute("DELETE FROM sales.order_items WHERE id = %s", (item_id,))
+            cur.execute(
+                "DELETE FROM sales.order_items WHERE order_id = %s AND product_id = %s",
+                (order_id, product_id),
+            )
         _recalc_total(order_id)
 
         order = _get_order(order_id)

@@ -10,10 +10,9 @@ CREATE TABLE IF NOT EXISTS sales.orders (
 );
 
 CREATE TABLE IF NOT EXISTS sales.order_items (
-    id serial PRIMARY KEY,
     order_id INTEGER NOT NULL REFERENCES sales.orders(id) ON DELETE CASCADE,
     product_id INTEGER NOT NULL REFERENCES catalog.products(id) ON DELETE RESTRICT,
     quantity INTEGER NOT NULL CHECK (quantity > 0),
     price DECIMAL(10, 2) NOT NULL,
-    UNIQUE (order_id, product_id)
+    PRIMARY KEY (order_id, product_id)
 );

@@ -3,6 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from prompt_toolkit import prompt
+from prompt_toolkit.shortcuts import choice
 from prompt_toolkit.completion import WordCompleter
 from psycopg.rows import class_row
 from rich.panel import Panel
@@ -196,21 +197,13 @@ def add_order() -> None:
         render_error("Нет доступных складов")
         return
 
-    warehouse_choices = {f"{w[0]} - {w[1]}": w[0] for w in warehouses}
-    warehouse_validator = ChoiceValidator(
-        list(warehouse_choices.keys()),
-        message="Выберите склад из списка. Используйте Tab для автодополнения.",
-    )
-    warehouse_completer = WordCompleter(
-        list(warehouse_choices.keys()), ignore_case=True, sentence=True
-    )
+    warehouse_options = [(str(w[0]), f"{w[0]} - {w[1]}") for w in warehouses]
 
-    warehouse_str = prompt(
-        "Склад: ",
-        validator=warehouse_validator,
-        completer=warehouse_completer,
-    ).strip()
-    warehouse_id = warehouse_choices[warehouse_str]
+    warehouse_id_str = choice(
+        message="Выберите склад:",
+        options=warehouse_options,
+    )
+    warehouse_id = int(warehouse_id_str)
 
     with conn.cursor() as cur:
         cur.execute(
@@ -290,30 +283,20 @@ def edit_order(_id: str) -> None:
         cur.execute("SELECT id, city FROM catalog.warehouses")
         warehouses = cur.fetchall()
 
-    warehouse_choices = {f"{w[0]} - {w[1]}": w[0] for w in warehouses}
-    current_warehouse_str = next(
-        (key for key, val in warehouse_choices.items() if val == order.warehouse_id),
-        None,
-    )
-    if current_warehouse_str is None:
-        render_error(f"Склад с ID {order.warehouse_id} не найден")
-        return
+    warehouse_options = [(str(w[0]), f"{w[0]} - {w[1]}") for w in warehouses]
 
-    warehouse_validator = ChoiceValidator(
-        list(warehouse_choices.keys()),
-        message="Выберите склад из списка. Используйте Tab для автодополнения.",
-    )
-    warehouse_completer = WordCompleter(
-        list(warehouse_choices.keys()), ignore_case=True, sentence=True
-    )
+    default_index = None
+    for i, (key, _) in enumerate(warehouse_options):
+        if int(key) == order.warehouse_id:
+            default_index = i
+            break
 
-    warehouse_str = prompt(
-        "Склад: ",
-        default=current_warehouse_str,
-        validator=warehouse_validator,
-        completer=warehouse_completer,
-    ).strip()
-    warehouse_id = warehouse_choices[warehouse_str]
+    warehouse_id_str = choice(
+        message="Выберите склад:",
+        options=warehouse_options,
+        default=warehouse_options[default_index][0] if default_index is not None else None,
+    )
+    warehouse_id = int(warehouse_id_str)
 
     with conn.cursor() as cur:
         cur.execute(
@@ -410,29 +393,20 @@ def edit_order_item(order_id: str) -> None:
         render_error("В заказе нет товаров")
         return
 
-    item_choices = {}
+    item_options = []
     for item in items:
         try:
             product_name = _get_product_name(item.product_id)
         except ValueError as e:
             render_error(str(e))
             return
-        item_choices[f"{item.product_id}: {product_name} x{item.quantity}"] = item.product_id
+        item_options.append((str(item.product_id), f"{item.product_id}: {product_name} x{item.quantity}"))
 
-    item_validator = ChoiceValidator(
-        list(item_choices.keys()),
-        message="Выберите товар из списка. Используйте Tab для автодополнения.",
+    product_id_str = choice(
+        message="Выберите товар для редактирования:",
+        options=item_options,
     )
-    item_completer = WordCompleter(
-        list(item_choices.keys()), ignore_case=True, sentence=True
-    )
-
-    choice = prompt(
-        "Выберите товар для редактирования: ",
-        validator=item_validator,
-        completer=item_completer,
-    ).strip()
-    product_id = item_choices[choice]
+    product_id = int(product_id_str)
 
     selected_item = next(i for i in items if i.product_id == product_id)
 
@@ -476,29 +450,20 @@ def delete_order_item(order_id: str) -> None:
         render_error("В заказе нет товаров")
         return
 
-    item_choices = {}
+    item_options = []
     for item in items:
         try:
             product_name = _get_product_name(item.product_id)
         except ValueError as e:
             render_error(str(e))
             return
-        item_choices[f"{item.product_id}: {product_name} x{item.quantity}"] = item.product_id
+        item_options.append((str(item.product_id), f"{item.product_id}: {product_name} x{item.quantity}"))
 
-    item_validator = ChoiceValidator(
-        list(item_choices.keys()),
-        message="Выберите товар из списка. Используйте Tab для автодополнения.",
+    product_id_str = choice(
+        message="Выберите товар для удаления:",
+        options=item_options,
     )
-    item_completer = WordCompleter(
-        list(item_choices.keys()), ignore_case=True, sentence=True
-    )
-
-    choice = prompt(
-        "Выберите товар для удаления: ",
-        validator=item_validator,
-        completer=item_completer,
-    ).strip()
-    product_id = item_choices[choice]
+    product_id = int(product_id_str)
 
     answer = prompt("Вы уверены? (y/n, д/н): ", validator=YesNoValidator())
 

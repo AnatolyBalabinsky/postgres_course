@@ -22,26 +22,16 @@ class Product:
     sku: str
     name: str
     price: Decimal
-    category_id: int
+    category: str
 
 
-def _category_exists(category_id: int) -> bool:
+def _category_exists(category_name: str) -> bool:
     conn = get_conn()
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT 1 FROM catalog.product_categories WHERE id = %s", (category_id,)
+            "SELECT 1 FROM catalog.product_categories WHERE name = %s", (category_name,)
         )
         return cur.fetchone() is not None
-
-
-def _get_category_name(category_id: int) -> str:
-    conn = get_conn()
-    with conn.cursor() as cur:
-        cur.execute(
-            "SELECT name FROM catalog.product_categories WHERE id = %s", (category_id,)
-        )
-        row = cur.fetchone()
-        return row[0] if row else "—"
 
 
 def _render_product(product: Product):
@@ -57,7 +47,7 @@ def _render_product(product: Product):
     table.add_row("SKU", product.sku)
     table.add_row("Имя", product.name)
     table.add_row("Цена", str(product.price))
-    table.add_row("Категория", _get_category_name(product.category_id))
+    table.add_row("Категория", str(product.category))
 
     panel = Panel(
         table,
@@ -93,7 +83,7 @@ def list_products() -> None:
             product.sku,
             product.name,
             str(product.price),
-            _get_category_name(product.category_id),
+            str(product.category),
         )
     console.print(table)
 
@@ -126,18 +116,17 @@ def add_product() -> None:
     sku = prompt("SKU: ", validator=NonEmptyValidator()).strip()
     name = prompt("Имя: ", validator=NonEmptyValidator()).strip()
     price = prompt("Цена: ", validator=PriceValidator()).strip()
-    category_id = prompt("ID категории: ", validator=NonEmptyValidator()).strip()
+    category_name = prompt("Категория: ", validator=NonEmptyValidator()).strip()
 
-    if not _category_exists(int(category_id)):
-        render_error(f"Категория с ID {category_id} не найдена")
+    if not _category_exists(category_name):
+        render_error(f"Категория '{category_name}' не найдена")
         return
 
     conn.execute(
-        "INSERT INTO catalog.products (sku, name, price, category_id) VALUES (%s, %s, %s, %s)",
-        (sku, name, price, category_id),
+        "INSERT INTO catalog.products (sku, name, price, category) VALUES (%s, %s, %s, %s)",
+        (sku, name, price, category_name),
     )
 
-    category_name = _get_category_name(int(category_id))
     console.print(
         f"[green]Продукт {name} (SKU: {sku}, категория: {category_name}) добавлен[/green]"
     )
@@ -168,22 +157,21 @@ def edit_product(_id: str) -> None:
     price = prompt(
         "Цена: ", default=str(product.price), validator=PriceValidator()
     ).strip()
-    category_id = prompt(
-        "ID категории: ",
-        default=str(product.category_id),
+    category_name = prompt(
+        "Категория (имя): ",
+        default=product.category,
         validator=NonEmptyValidator(),
     ).strip()
 
-    if not _category_exists(int(category_id)):
-        render_error(f"Категория с ID {category_id} не найдена")
+    if not _category_exists(category_name):
+        render_error(f"Категория '{category_name}' не найдена")
         return
 
     conn.execute(
-        """UPDATE catalog.products SET sku = %s, name = %s, price = %s, category_id = %s
+        """UPDATE catalog.products SET sku = %s, name = %s, price = %s, category = %s
         WHERE id = %s""",
-        (sku, name, price, category_id, _id),
+        (sku, name, price, category_name, _id),
     )
-    category_name = _get_category_name(int(category_id))
     console.print(
         f"[green]Продукт {name} (SKU: {sku}, категория: {category_name}) обновлен[/green]"
     )

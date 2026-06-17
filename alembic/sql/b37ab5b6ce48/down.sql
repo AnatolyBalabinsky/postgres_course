@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS sales.order_items;
+DROP TABLE IF EXISTS sales.orders;
+
+DROP SCHEMA IF EXISTS sales;

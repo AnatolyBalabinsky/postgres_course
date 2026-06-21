@@ -19,7 +19,7 @@ from validators import (
 )
 from commands import command, CATEGORY_ORDERS
 
-from auth import ROLE_CATALOG_MANAGER, ROLE_SALES_MANAGER
+from auth import ROLE_CATALOG_MANAGER, ROLE_SALES_MANAGER, auth_user
 
 
 @dataclass
@@ -37,6 +37,7 @@ class Order:
     total_amount: Decimal
     created_at: datetime
     warehouse_id: int
+    created_by: int
 
 
 def _get_order(order_id: str) -> Order | None:
@@ -67,6 +68,14 @@ def _get_product_name(product_id: int) -> str:
         if result is None:
             raise ValueError(f"Продукт с ID {product_id} не найден в базе")
         return result[0]
+
+
+def _get_creator_username(user_id: int) -> str:
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute("SELECT username FROM auth.users WHERE id = %s", (user_id,))
+        result = cur.fetchone()
+        return result[0] if result else "unknown"
 
 
 def _get_products_completer(order_id: int = None):
@@ -118,6 +127,7 @@ def _render_order(order: Order, items: list[OrderItem]) -> None:
     table.add_row("Создан", order.created_at.strftime("%Y-%m-%d %H:%M"))
     table.add_row("Склад", str(order.warehouse_id))
     table.add_row("Сумма", str(order.total_amount))
+    table.add_row("Создал", _get_creator_username(order.created_by))
 
     panel = Panel(
         table,
@@ -163,6 +173,7 @@ def list_orders() -> None:
     table.add_column("Сумма", style="magenta", min_width=12)
     table.add_column("Создан", style="dim", min_width=20)
     table.add_column("Склад", style="green", min_width=12)
+    table.add_column("Создал", style="blue", min_width=15)
 
     with conn.cursor(row_factory=class_row(Order)) as cur:
         cur.execute("SELECT * FROM sales.orders")
@@ -175,6 +186,7 @@ def list_orders() -> None:
             str(order.total_amount),
             order.created_at.strftime("%Y-%m-%d %H:%M"),
             str(order.warehouse_id),
+            _get_creator_username(order.created_by),
         )
     console.print(table)
 
@@ -212,10 +224,11 @@ def add_order() -> None:
     )
     warehouse_id = int(warehouse_id_str)
 
+    user = auth_user()
     with conn.cursor() as cur:
         cur.execute(
-            "INSERT INTO sales.orders (warehouse_id) VALUES (%s)",
-            (warehouse_id,),
+            "INSERT INTO sales.orders (warehouse_id, created_by) VALUES (%s, %s)",
+            (warehouse_id, user.id),
         )
         cur.execute("SELECT MAX(id) FROM sales.orders")
         order_id = cur.fetchone()[0]

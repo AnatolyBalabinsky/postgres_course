@@ -19,6 +19,8 @@ from validators import (
 )
 from commands import command, CATEGORY_ORDERS
 
+from auth import ROLE_CATALOG_MANAGER, ROLE_SALES_MANAGER
+
 
 @dataclass
 class OrderItem:
@@ -151,7 +153,7 @@ def _render_order(order: Order, items: list[OrderItem]) -> None:
         console.print(items_table)
 
 
-@command("list orders", "список всех заказов", CATEGORY_ORDERS)
+@command("list orders", "список всех заказов", CATEGORY_ORDERS, [ROLE_SALES_MANAGER])
 def list_orders() -> None:
     conn = get_conn()
     table = Table(title="Заказы", show_header=True, header_style="bold cyan")
@@ -177,7 +179,7 @@ def list_orders() -> None:
     console.print(table)
 
 
-@command("show order", "информация о заказе", CATEGORY_ORDERS)
+@command("show order", "информация о заказе", CATEGORY_ORDERS, [ROLE_SALES_MANAGER])
 def show_order(_id: str) -> None:
     order = _get_order(_id)
     if order is None:
@@ -188,7 +190,9 @@ def show_order(_id: str) -> None:
     _render_order(order, items)
 
 
-@command("add order", "добавить заказ (интерактивно)", CATEGORY_ORDERS)
+@command(
+    "add order", "добавить заказ (интерактивно)", CATEGORY_ORDERS, [ROLE_SALES_MANAGER]
+)
 def add_order() -> None:
     conn = get_conn()
 
@@ -270,7 +274,7 @@ def _add_order_items_loop(order_id: int) -> None:
         products_completer = _get_products_completer(order_id)
 
 
-@command("edit order", "редактировать заказ", CATEGORY_ORDERS)
+@command("edit order", "редактировать заказ", CATEGORY_ORDERS, [ROLE_SALES_MANAGER])
 def edit_order(_id: str) -> None:
     order = _get_order(_id)
     if order is None:
@@ -311,7 +315,7 @@ def edit_order(_id: str) -> None:
     console.print(f"[green]Заказ #{_id} обновлен[/green]")
 
 
-@command("delete order", "удалить заказ", CATEGORY_ORDERS)
+@command("delete order", "удалить заказ", CATEGORY_ORDERS, [ROLE_SALES_MANAGER])
 def delete_order(_id: str) -> None:
     order = _get_order(_id)
     if order is None:
@@ -334,7 +338,7 @@ def delete_order(_id: str) -> None:
         console.print(f"[green]Заказ #{_id} удален[/green]")
 
 
-@command("publish order", "опубликовать заказ", CATEGORY_ORDERS)
+@command("publish order", "опубликовать заказ", CATEGORY_ORDERS, [ROLE_SALES_MANAGER])
 def publish_order(_id: str) -> None:
     order = _get_order(_id)
     if order is None:
@@ -359,7 +363,9 @@ def publish_order(_id: str) -> None:
     console.print(f"[green]Заказ #{_id} опубликован (статус: new)[/green]")
 
 
-@command("add order_item", "добавить товар в заказ", CATEGORY_ORDERS)
+@command(
+    "add order_item", "добавить товар в заказ", CATEGORY_ORDERS, [ROLE_SALES_MANAGER]
+)
 def add_order_item(order_id: str) -> None:
     order = _get_order(order_id)
     if order is None:
@@ -382,7 +388,12 @@ def add_order_item(order_id: str) -> None:
     _render_order(order, items)
 
 
-@command("edit order_item", "редактировать товар в заказе", CATEGORY_ORDERS)
+@command(
+    "edit order_item",
+    "редактировать товар в заказе",
+    CATEGORY_ORDERS,
+    [ROLE_SALES_MANAGER],
+)
 def edit_order_item(order_id: str) -> None:
     order = _get_order(order_id)
     if order is None:
@@ -444,7 +455,12 @@ def edit_order_item(order_id: str) -> None:
     _render_order(order, items)
 
 
-@command("delete order_item", "удалить товар из заказа", CATEGORY_ORDERS)
+@command(
+    "delete order_item",
+    "удалить товар из заказа",
+    CATEGORY_ORDERS,
+    [ROLE_SALES_MANAGER],
+)
 def delete_order_item(order_id: str) -> None:
     order = _get_order(order_id)
     if order is None:

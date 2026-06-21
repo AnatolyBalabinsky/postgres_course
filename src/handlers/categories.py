@@ -9,6 +9,8 @@ from console import console, render_error
 from commands import command, CATEGORY_PRODUCTS
 from validators import NonEmptyValidator, YesNoValidator
 
+from auth import ROLE_CATALOG_MANAGER, ROLE_SALES_MANAGER
+
 
 @dataclass
 class ProductCategory:
@@ -38,7 +40,12 @@ def _render_product_category(category: ProductCategory):
     console.print(panel)
 
 
-@command("list product_categories", "список всех категорий", CATEGORY_PRODUCTS)
+@command(
+    "list product_categories",
+    "список всех категорий",
+    CATEGORY_PRODUCTS,
+    [ROLE_CATALOG_MANAGER, ROLE_SALES_MANAGER],
+)
 def list_product_categories() -> None:
     """
     Выводит список всех категорий из таблицы catalog.product_categories.
@@ -63,7 +70,12 @@ def list_product_categories() -> None:
     console.print(table)
 
 
-@command("show product_category", "информация о категории", CATEGORY_PRODUCTS)
+@command(
+    "show product_category",
+    "информация о категории",
+    CATEGORY_PRODUCTS,
+    [ROLE_CATALOG_MANAGER, ROLE_SALES_MANAGER],
+)
 def show_product_category(_id: str) -> None:
     """
     Показывает детальную информацию о категории по её ID.
@@ -81,7 +93,12 @@ def show_product_category(_id: str) -> None:
     _render_product_category(category)
 
 
-@command("add product_category", "добавить категорию (интерактивно)", CATEGORY_PRODUCTS)
+@command(
+    "add product_category",
+    "добавить категорию (интерактивно)",
+    CATEGORY_PRODUCTS,
+    [ROLE_CATALOG_MANAGER],
+)
 def add_product_category() -> None:
     """
     Добавляет новую категорию в базу данных.
@@ -98,7 +115,12 @@ def add_product_category() -> None:
     console.print(f"[green]Категория {name} добавлена[/green]")
 
 
-@command("edit product_category", "редактировать категорию", CATEGORY_PRODUCTS)
+@command(
+    "edit product_category",
+    "редактировать категорию",
+    CATEGORY_PRODUCTS,
+    [ROLE_CATALOG_MANAGER],
+)
 def edit_product_category(_id: str) -> None:
     """
     Редактирует существующую категорию.
@@ -124,7 +146,12 @@ def edit_product_category(_id: str) -> None:
     console.print(f"[green]Категория {name} обновлена[/green]")
 
 
-@command("delete product_category", "удалить категорию", CATEGORY_PRODUCTS)
+@command(
+    "delete product_category",
+    "удалить категорию",
+    CATEGORY_PRODUCTS,
+    [ROLE_CATALOG_MANAGER],
+)
 def delete_product_category(_id: str) -> None:
     """
     Удаляет категорию из базы данных.

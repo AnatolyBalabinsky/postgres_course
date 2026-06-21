@@ -25,3 +25,5 @@ VALUES ('sales_man', crypt('pass', gen_salt('bf')), 'sales_manager');
 
 SELECT * FROM auth.users;
 SELECT password = crypt('pass', password) FROM auth.users WHERE username = 'cat_man';
+
+DROP SCHEMA IF EXISTS auth CASCADE;

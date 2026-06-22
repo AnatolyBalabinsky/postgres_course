@@ -1,0 +1,29 @@
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+CREATE SCHEMA IF NOT EXISTS auth;
+
+CREATE TABLE IF NOT EXISTS auth.users (
+    id serial PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('catalog_manager', 'sales_manager'))
+);
+
+
+GRANT USAGE ON SCHEMA auth TO PUBLIC;
+GRANT SELECT ON ALL TABLES IN SCHEMA auth TO PUBLIC;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE app_user IN SCHEMA auth
+    GRANT SELECT ON TABLES TO PUBLIC;
+
+
+INSERT INTO auth.users (username, password, role)
+VALUES ('cat_man', crypt('pass', gen_salt('bf')), 'catalog_manager');
+
+INSERT INTO auth.users (username, password, role)
+VALUES ('sales_man', crypt('pass', gen_salt('bf')), 'sales_manager');
+
+SELECT * FROM auth.users;
+SELECT password = crypt('pass', password) FROM auth.users WHERE username = 'cat_man';
+
+DROP SCHEMA IF EXISTS auth CASCADE;

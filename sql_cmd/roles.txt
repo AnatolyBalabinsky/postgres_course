@@ -1,0 +1,9 @@
+CREATE ROLE catalog_manager WITH LOGIN PASSWORD 'catalogmanager';
+CREATE ROLE sales_manager WITH LOGIN PASSWORD 'salesmanager';
+CREATE ROLE supervisor WITH LOGIN PASSWORD 'supervisor';
+
+psql -U catalog_manager -d inventorydb -h localhost
+
+psql -U sales_manager -d inventorydb -h localhost
+
+psql -U supervisor -d inventorydb -h localhost

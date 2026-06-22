@@ -1,0 +1,26 @@
+GRANT ALL ON SCHEMA catalog TO catalog_manager;
+GRANT ALL ON ALL TABLES IN SCHEMA catalog TO catalog_manager;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA catalog TO catalog_manager;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE app_user IN SCHEMA catalog
+    GRANT ALL ON TABLES TO catalog_manager;
+ALTER DEFAULT PRIVILEGES FOR ROLE app_user IN SCHEMA catalog
+    GRANT ALL ON SEQUENCES TO catalog_manager;
+
+GRANT ALL ON SCHEMA sales TO sales_manager;
+GRANT ALL ON ALL TABLES IN SCHEMA sales TO sales_manager;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA sales TO sales_manager;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE app_user IN SCHEMA sales
+    GRANT ALL ON TABLES TO sales_manager;
+ALTER DEFAULT PRIVILEGES FOR ROLE app_user IN SCHEMA sales
+    GRANT ALL ON SEQUENCES TO sales_manager;
+
+GRANT USAGE ON SCHEMA catalog TO PUBLIC;
+GRANT SELECT ON ALL TABLES IN SCHEMA catalog TO PUBLIC;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE app_user IN SCHEMA catalog
+    GRANT SELECT ON TABLES TO PUBLIC;
+
+GRANT catalog_manager TO supervisor;
+GRANT sales_manager TO supervisor;

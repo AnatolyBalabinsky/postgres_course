@@ -19,7 +19,7 @@ from validators import (
 )
 from commands import command, CATEGORY_ORDERS
 
-from auth import ROLE_CATALOG_MANAGER, ROLE_SALES_MANAGER, auth_user
+from auth import ROLE_SALES_MANAGER, auth_user
 
 
 @dataclass
@@ -209,7 +209,11 @@ def add_order() -> None:
     conn = get_conn()
 
     with conn.cursor() as cur:
-        cur.execute("SELECT id, city FROM catalog.warehouses")
+        cur.execute("""
+            SELECT w.id, c.name 
+            FROM catalog.warehouses w 
+            JOIN catalog.cities c ON w.city_id = c.id
+        """)
         warehouses = cur.fetchall()
 
     if not warehouses:
@@ -300,7 +304,11 @@ def edit_order(_id: str) -> None:
 
     conn = get_conn()
     with conn.cursor() as cur:
-        cur.execute("SELECT id, city FROM catalog.warehouses")
+        cur.execute("""
+            SELECT w.id, c.name 
+            FROM catalog.warehouses w 
+            JOIN catalog.cities c ON w.city_id = c.id
+        """)
         warehouses = cur.fetchall()
 
     warehouse_options = [(str(w[0]), f"{w[0]} - {w[1]}") for w in warehouses]

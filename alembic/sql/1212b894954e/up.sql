@@ -72,7 +72,7 @@ CREATE TABLE inventory.transfer_items (
     transfer_id INTEGER NOT NULL,
     product_id INTEGER NOT NULL,
     quantity INTEGER NOT NULL CHECK (quantity > 0),
-    reserve_id INTEGER REFERENCES inventory.reserves(id) ON DELETE SET NULL,
+    reserve_id INTEGER REFERENCES inventory.reserves(id) ON DELETE RESTRICT,
     requested_by INTEGER NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'planned'
         CHECK (status IN ('planned', 'shipped', 'received')),

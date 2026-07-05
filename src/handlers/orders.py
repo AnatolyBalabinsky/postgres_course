@@ -19,7 +19,7 @@ from validators import (
 )
 from commands import command, CATEGORY_ORDERS
 
-from auth import ROLE_CATALOG_MANAGER, ROLE_SALES_MANAGER, auth_user
+from auth import ROLE_SALES_MANAGER, auth_user
 
 
 @dataclass

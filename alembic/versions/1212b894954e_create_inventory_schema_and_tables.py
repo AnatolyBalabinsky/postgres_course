@@ -1,7 +1,7 @@
 """create inventory schema and tables
 
 Revision ID: 1212b894954e
-Revises: 7097f11a5b34
+Revises: 802f2e7d81b1
 Create Date: 2026-07-04 14:17:46.115442
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '1212b894954e'
-down_revision: Union[str, None] = '7097f11a5b34'
+down_revision: Union[str, None] = '802f2e7d81b1'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

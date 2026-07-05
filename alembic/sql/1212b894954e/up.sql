@@ -24,12 +24,10 @@ CREATE TABLE inventory.reserves (
     id SERIAL PRIMARY KEY,
     order_id INTEGER NOT NULL,
     product_id INTEGER NOT NULL,
-    warehouse_id INTEGER NOT NULL,
     quantity INTEGER NOT NULL CHECK (quantity > 0),
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     FOREIGN KEY (order_id) REFERENCES sales.orders(id) ON DELETE RESTRICT,
-    FOREIGN KEY (product_id) REFERENCES catalog.products(id) ON DELETE RESTRICT,
-    FOREIGN KEY (warehouse_id) REFERENCES catalog.warehouses(id) ON DELETE RESTRICT
+    FOREIGN KEY (product_id) REFERENCES catalog.products(id) ON DELETE RESTRICT
 );
 
 CREATE TABLE inventory.deliveries (

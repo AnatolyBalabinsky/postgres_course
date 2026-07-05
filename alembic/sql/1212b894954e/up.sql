@@ -58,7 +58,6 @@ CREATE TABLE inventory.transfers (
     to_warehouse_id INTEGER NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'planned'
         CHECK (status IN ('planned', 'shipping', 'in_transit', 'arrived', 'received')),
-    total_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     started_at TIMESTAMP,
     arriving_at TIMESTAMP,

@@ -8,11 +8,6 @@ ALTER DEFAULT PRIVILEGES FOR ROLE app_user IN SCHEMA inventory
     GRANT ALL ON SEQUENCES TO inventory_manager;
 
 GRANT USAGE ON SCHEMA sales TO inventory_manager;
-GRANT SELECT ON ALL TABLES IN SCHEMA sales TO inventory_manager;
-GRANT UPDATE (status) ON sales.orders TO inventory_manager;
-
-GRANT SELECT ON ALL TABLES IN SCHEMA catalog TO inventory_manager;
-
 
 GRANT USAGE ON SCHEMA inventory TO worker;
 

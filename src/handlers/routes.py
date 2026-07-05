@@ -39,14 +39,6 @@ def _get_cities() -> list[tuple[int, str]]:
         return [(row[0], row[1]) for row in cur.fetchall()]
 
 
-def _get_existing_route_pairs() -> list[tuple[int, int]]:
-    """Возвращает список пар (from_city_id, to_city_id), которые уже есть в routes"""
-    conn = get_conn()
-    with conn.cursor() as cur:
-        cur.execute("SELECT from_city_id, to_city_id FROM inventory.routes")
-        return [(row[0], row[1]) for row in cur.fetchall()]
-
-
 def _render_route(route: Route) -> None:
     table = Table(show_header=False, box=None, padding=(0, 2))
     table.add_column("Поле", style="bold cyan", width=20)
@@ -162,21 +154,27 @@ def show_route() -> None:
 )
 def add_route() -> None:
     conn = get_conn()
-    cities = _get_cities()
-    existing_pairs = _get_existing_route_pairs()
 
-    # Фильтруем доступные пары городов
-    available_from = [
-        (str(c[0]), c[1])
-        for c in cities
-        if any(
-            (c[0], to_id) not in existing_pairs for _, to_id in cities if c[0] != to_id
-        )
-    ]
+    # Получаем все доступные пары городов одним запросом
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT fc.id, fc.name, tc.id, tc.name
+            FROM catalog.cities fc
+            CROSS JOIN catalog.cities tc
+            LEFT JOIN inventory.routes r 
+                ON r.from_city_id = fc.id AND r.to_city_id = tc.id
+            WHERE fc.id != tc.id AND r.from_city_id IS NULL
+            ORDER BY fc.name, tc.name
+        """)
+        available_pairs = [(row[0], row[1], row[2], row[3]) for row in cur.fetchall()]
 
-    if not available_from:
+    if not available_pairs:
         render_error("Все возможные маршруты уже созданы")
         return
+
+    # Уникальные города отправления
+    from_cities = list(dict.fromkeys((p[0], p[1]) for p in available_pairs))
+    available_from = [(str(c[0]), c[1]) for c in from_cities]
 
     from_id_str = choice(
         message="Выберите город отправления:",
@@ -184,14 +182,11 @@ def add_route() -> None:
     )
     from_id = int(from_id_str)
 
-    available_to = [
-        (str(c[0]), c[1])
-        for c in cities
-        if c[0] != from_id and (from_id, c[0]) not in existing_pairs
-    ]
+    # Фильтруем города назначения для выбранного города отправления
+    available_to = [(str(p[2]), p[3]) for p in available_pairs if p[0] == from_id]
 
     if not available_to:
-        render_error(f"Нет доступных городов назначения для выбранного города")
+        render_error("Нет доступных городов назначения для выбранного города")
         return
 
     to_id_str = choice(
@@ -207,14 +202,15 @@ def add_route() -> None:
 
     threshold = prompt("Минимальная сумма: ", validator=PriceValidator()).strip()
 
+    from_name = next(p[1] for p in available_pairs if p[0] == from_id)
+    to_name = next(p[3] for p in available_pairs if p[0] == from_id and p[2] == to_id)
+
     conn.execute(
         """INSERT INTO inventory.routes (from_city_id, to_city_id, duration, total_threshold)
            VALUES (%s, %s, %s::interval, %s)""",
         (from_id, to_id, duration, threshold),
     )
 
-    from_name = next(c[1] for c in cities if c[0] == from_id)
-    to_name = next(c[1] for c in cities if c[0] == to_id)
     console.print(f"[green]Маршрут {from_name} → {to_name} добавлен[/green]")
 
 

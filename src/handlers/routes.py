@@ -135,33 +135,21 @@ def show_route() -> None:
     )
     from_id, to_id = selected.split("-")
 
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            SELECT 
-                r.from_city_id, fc.name as from_city,
-                r.to_city_id, tc.name as to_city,
-                r.duration, r.total_threshold
-            FROM inventory.routes r
-            JOIN catalog.cities fc ON r.from_city_id = fc.id
-            JOIN catalog.cities tc ON r.to_city_id = tc.id
-            WHERE r.from_city_id = %s AND r.to_city_id = %s
-        """,
-            (from_id, to_id),
-        )
-        row = cur.fetchone()
+    selected_route = next(
+        (r for r in routes if str(r[0]) == from_id and str(r[2]) == to_id), None
+    )
 
-    if row is None:
+    if selected_route is None:
         render_error("Маршрут не найден")
         return
 
     route = Route(
-        from_city_id=row[0],
-        from_city_name=row[1],
-        to_city_id=row[2],
-        to_city_name=row[3],
-        duration=row[4],
-        total_threshold=float(row[5]),
+        from_city_id=selected_route[0],
+        from_city_name=selected_route[1],
+        to_city_id=selected_route[2],
+        to_city_name=selected_route[3],
+        duration=selected_route[4],
+        total_threshold=float(selected_route[5]),
     )
     _render_route(route)
 

@@ -40,14 +40,14 @@ CREATE TABLE inventory.deliveries (
 );
 
 CREATE TABLE inventory.delivery_items (
-    id SERIAL PRIMARY KEY,
-    delivery_id INTEGER NOT NULL,
+    order_id INTEGER NOT NULL,
     product_id INTEGER NOT NULL,
     quantity INTEGER NOT NULL CHECK (quantity > 0),
     reserve_id INTEGER NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'planned'
         CHECK (status IN ('planned', 'shipped')),
-    FOREIGN KEY (delivery_id) REFERENCES inventory.deliveries(id) ON DELETE CASCADE,
+    PRIMARY KEY (order_id, product_id),
+    FOREIGN KEY (order_id) REFERENCES inventory.deliveries(order_id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES catalog.products(id) ON DELETE RESTRICT,
     FOREIGN KEY (reserve_id) REFERENCES inventory.reserves(id) ON DELETE RESTRICT
 );

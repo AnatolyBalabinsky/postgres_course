@@ -31,8 +31,7 @@ CREATE TABLE inventory.reserves (
 );
 
 CREATE TABLE inventory.deliveries (
-    id SERIAL PRIMARY KEY,
-    order_id INTEGER NOT NULL UNIQUE,
+    order_id INTEGER PRIMARY KEY,
     status VARCHAR(20) NOT NULL DEFAULT 'planned'
         CHECK (status IN ('planned', 'shipping', 'shipped')),
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),

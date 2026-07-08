@@ -8,6 +8,3 @@ GRANT SELECT ON sales.orders TO inventory_manager;
 GRANT SELECT ON sales.order_items TO inventory_manager;
 
 GRANT UPDATE (status, processed_by) ON sales.orders TO inventory_manager;
-
-ALTER DEFAULT PRIVILEGES FOR ROLE app_user IN SCHEMA sales
-    GRANT SELECT ON TABLES TO inventory_manager;

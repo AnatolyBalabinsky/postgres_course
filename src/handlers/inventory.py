@@ -421,7 +421,13 @@ def view_warehouse_stock(warehouse_id: str) -> None:
                 p.id as product_id,
                 p.name as product_name,
                 p.sku as sku,
-                COALESCE(s.quantity, 0) as total_quantity,
+                COALESCE(s.quantity, 0) + COALESCE(
+                    (SELECT SUM(r.quantity)
+                     FROM inventory.reserves r
+                     JOIN sales.orders o ON r.order_id = o.id
+                     WHERE r.product_id = p.id AND o.warehouse_id = %s
+                    ), 0
+                ) as total_quantity,
                 COALESCE(
                     (SELECT SUM(r.quantity)
                      FROM inventory.reserves r
@@ -429,13 +435,7 @@ def view_warehouse_stock(warehouse_id: str) -> None:
                      WHERE r.product_id = p.id AND o.warehouse_id = %s
                     ), 0
                 ) as reserved_quantity,
-                COALESCE(s.quantity, 0) - COALESCE(
-                    (SELECT SUM(r.quantity)
-                     FROM inventory.reserves r
-                     JOIN sales.orders o ON r.order_id = o.id
-                     WHERE r.product_id = p.id AND o.warehouse_id = %s
-                    ), 0
-                ) as available_quantity
+                COALESCE(s.quantity, 0) as available_quantity
             FROM catalog.products p
             LEFT JOIN inventory.stock s ON p.id = s.product_id AND s.warehouse_id = %s
             ORDER BY p.name
@@ -489,7 +489,13 @@ def view_product_stock(product_id: str) -> None:
             SELECT
                 w.id,
                 c.name,
-                COALESCE(s.quantity, 0) as total_quantity,
+                COALESCE(s.quantity, 0) + COALESCE(
+                    (SELECT SUM(r.quantity)
+                     FROM inventory.reserves r
+                     JOIN sales.orders o ON r.order_id = o.id
+                     WHERE r.product_id = %s AND o.warehouse_id = w.id
+                    ), 0
+                ) as total_quantity,
                 COALESCE(
                     (SELECT SUM(r.quantity)
                      FROM inventory.reserves r
@@ -497,13 +503,7 @@ def view_product_stock(product_id: str) -> None:
                      WHERE r.product_id = %s AND o.warehouse_id = w.id
                     ), 0
                 ) as reserved_quantity,
-                COALESCE(s.quantity, 0) - COALESCE(
-                    (SELECT SUM(r.quantity)
-                     FROM inventory.reserves r
-                     JOIN sales.orders o ON r.order_id = o.id
-                     WHERE r.product_id = %s AND o.warehouse_id = w.id
-                    ), 0
-                ) as available_quantity
+                COALESCE(s.quantity, 0) as available_quantity
             FROM catalog.warehouses w
             JOIN catalog.cities c ON w.city_id = c.id
             LEFT JOIN inventory.stock s ON w.id = s.warehouse_id AND s.product_id = %s

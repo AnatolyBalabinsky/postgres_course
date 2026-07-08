@@ -417,30 +417,28 @@ def view_warehouse_stock(warehouse_id: str) -> None:
     with conn.cursor(row_factory=class_row(WarehouseStock)) as cur:
         cur.execute(
             """
+            WITH reserves_by_product AS (
+                SELECT 
+                    r.product_id,
+                    SUM(r.quantity) as reserved
+                FROM inventory.reserves r
+                JOIN sales.orders o ON r.order_id = o.id
+                WHERE o.warehouse_id = %s
+                GROUP BY r.product_id
+            )
             SELECT
                 p.id as product_id,
                 p.name as product_name,
                 p.sku as sku,
-                COALESCE(s.quantity, 0) + COALESCE(
-                    (SELECT SUM(r.quantity)
-                     FROM inventory.reserves r
-                     JOIN sales.orders o ON r.order_id = o.id
-                     WHERE r.product_id = p.id AND o.warehouse_id = %s
-                    ), 0
-                ) as total_quantity,
-                COALESCE(
-                    (SELECT SUM(r.quantity)
-                     FROM inventory.reserves r
-                     JOIN sales.orders o ON r.order_id = o.id
-                     WHERE r.product_id = p.id AND o.warehouse_id = %s
-                    ), 0
-                ) as reserved_quantity,
+                COALESCE(s.quantity, 0) + COALESCE(rp.reserved, 0) as total_quantity,
+                COALESCE(rp.reserved, 0) as reserved_quantity,
                 COALESCE(s.quantity, 0) as available_quantity
             FROM catalog.products p
             LEFT JOIN inventory.stock s ON p.id = s.product_id AND s.warehouse_id = %s
+            LEFT JOIN reserves_by_product rp ON p.id = rp.product_id
             ORDER BY p.name
         """,
-            (warehouse_id, warehouse_id, warehouse_id),
+            (warehouse_id, warehouse_id),
         )
         stocks: list[WarehouseStock] = cur.fetchall()
 
@@ -486,30 +484,29 @@ def view_product_stock(product_id: str) -> None:
     with conn.cursor() as cur:
         cur.execute(
             """
+            WITH reserves_by_warehouse AS (
+                SELECT 
+                    r.product_id,
+                    o.warehouse_id,
+                    SUM(r.quantity) as reserved
+                FROM inventory.reserves r
+                JOIN sales.orders o ON r.order_id = o.id
+                WHERE r.product_id = %s
+                GROUP BY r.product_id, o.warehouse_id
+            )
             SELECT
                 w.id,
                 c.name,
-                COALESCE(s.quantity, 0) + COALESCE(
-                    (SELECT SUM(r.quantity)
-                     FROM inventory.reserves r
-                     JOIN sales.orders o ON r.order_id = o.id
-                     WHERE r.product_id = %s AND o.warehouse_id = w.id
-                    ), 0
-                ) as total_quantity,
-                COALESCE(
-                    (SELECT SUM(r.quantity)
-                     FROM inventory.reserves r
-                     JOIN sales.orders o ON r.order_id = o.id
-                     WHERE r.product_id = %s AND o.warehouse_id = w.id
-                    ), 0
-                ) as reserved_quantity,
+                COALESCE(s.quantity, 0) + COALESCE(rw.reserved, 0) as total_quantity,
+                COALESCE(rw.reserved, 0) as reserved_quantity,
                 COALESCE(s.quantity, 0) as available_quantity
             FROM catalog.warehouses w
             JOIN catalog.cities c ON w.city_id = c.id
             LEFT JOIN inventory.stock s ON w.id = s.warehouse_id AND s.product_id = %s
+            LEFT JOIN reserves_by_warehouse rw ON s.product_id = rw.product_id AND w.id = rw.warehouse_id
             ORDER BY available_quantity DESC
         """,
-            (product_id, product_id, product_id),
+            (product_id, product_id),
         )
         rows = cur.fetchall()
 

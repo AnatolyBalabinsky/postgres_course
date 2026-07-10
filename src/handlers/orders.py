@@ -38,13 +38,14 @@ class Order:
     created_at: datetime
     warehouse_id: int
     created_by: int
+    processed_by: int | None
 
 
 def _get_order(order_id: str) -> Order | None:
     conn = get_conn()
     with conn.cursor(row_factory=class_row(Order)) as cur:
         cur.execute(
-            "SELECT * FROM sales.orders WHERE id = %s",
+            "SELECT id, status, total_amount, created_at, warehouse_id, created_by, processed_by FROM sales.orders WHERE id = %s",
             (order_id,),
         )
         return cur.fetchone()
@@ -176,7 +177,9 @@ def list_orders() -> None:
     table.add_column("Создал", style="blue", min_width=15)
 
     with conn.cursor(row_factory=class_row(Order)) as cur:
-        cur.execute("SELECT * FROM sales.orders")
+        cur.execute(
+            "SELECT id, status, total_amount, created_at, warehouse_id, created_by, processed_by FROM sales.orders"
+        )
         orders: list[Order] = cur.fetchall()
 
     for order in orders:
